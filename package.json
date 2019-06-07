@@ -1,0 +1,23 @@
+{
+    "name": "com.obel.tss",
+    "author": "ObelardO",
+    "displayName": "TSS Visual tweener",
+    "description": "Plugin for Unity – quick and visual animating based on tweens.",
+    "unity": "2018.1",
+    "version": "1.6.3",
+    "keywords": [
+        "tss",
+        "animation",
+        "ui",
+        "timeline",
+        "procedure",
+		"material",
+		"visual",
+		"tween"
+    ],
+    "dependencies": {},
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ObelardO/TSS-Package.git"
+    }
+}
