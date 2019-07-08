@@ -5,6 +5,7 @@
 // MIT License
 
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -34,19 +35,23 @@ namespace TSS.Base
                     };
 
                     _instance = gameObject.AddComponent<TSSBehaviour>();
-                    SceneManager.sceneUnloaded += Clear;
-
-                    DontDestroyOnLoad(_instance);
                 }
 
                 return _instance;
             }
         }
 
+        private static List<TSSItem> AllItems = new List<TSSItem>();
         private static List<TSSItem> updatingItems = new List<TSSItem>();
         private static List<TSSItem> fixedUpdatingItems = new List<TSSItem>();
         private static List<TSSItem> lateUpdateingItems = new List<TSSItem>();
         private static List<TSSCore> cores = new List<TSSCore>();
+
+        /// <summary>Readonly list of contained items</summary>
+        public static List<TSSItem> GetItems()
+        {
+            return AllItems.ToList();
+        }
 
         /// <summary>Count of contained items with default Update()</summary>
         public static int updatingItemsCount { get { return updatingItems.Count; } }
@@ -61,6 +66,21 @@ namespace TSS.Base
         #endregion
 
         #region Public methods
+
+        /// <summary>Add item to behaviour on Awake. Strongly not recommended for manual use</summary>
+        /// <param name="item">TSSitem</param>
+        public static void OnItemAwake(TSSItem item)
+        {
+            AllItems.Add(item);
+        }
+
+        /// <summary>Remove item from behaviour on Destroy. Strongly not recommended for manual use</summary>
+        /// <param name="item">TSSitem</param>
+        public static void OnItemDestroy(TSSItem item)
+        {
+            RemoveItem(item);
+            AllItems.Remove(item);
+        }
 
         /// <summary>Add item to behaviour. Strongly not recommended for manual use</summary>
         /// <param name="item">TSSitem</param>
@@ -108,25 +128,38 @@ namespace TSS.Base
             cores.Remove(core);
         }
 
-        #endregion
-
-        #region Private methods
-
-        [RuntimeInitializeOnLoadMethod]
-        private static void OnLoad()
+        /// <summary>Manualy refresh all items inheritances and activate start states. Strongly not recommended for manual use</summary>
+        public static void RefreshAndStart()
         {
-            if (instance == null) return;
-
-            for (int i = 0; i < TSSItemBase.AllItems.Count; i++)
+            for (int i = 0; i < AllItems.Count; i++)
             {
-                if (TSSItemBase.AllItems[i].parent == null) TSSItemBase.AllItems[i].Refresh();
-                TSSItemBase.Activate(TSSItemBase.AllItems[i], TSSItemBase.AllItems[i].activationStart);
+                if (AllItems[i].parent == null) AllItems[i].Refresh();
+                TSSItemBase.Activate(AllItems[i], AllItems[i].activationStart);
             }
 
             for (int i = 0; i < cores.Count; i++) cores[i].SelectDefaultState();
         }
 
-        private static void Clear(Scene scene)
+        #endregion
+
+        #region Private methods
+
+        [RuntimeInitializeOnLoadMethod]
+        private static void OnApplicationStart()
+        {
+            SceneManager.sceneLoaded += (Scene scene, LoadSceneMode mode) =>
+            {
+                RefreshAndStart();
+            };
+
+            RefreshAndStart();
+
+            if (instance == null) return;
+        }
+
+        ///Strongly not recommended for manual use</summary>
+        [System.Obsolete("Only for debug")]
+        private static void Clear()
         {
             updatingItems.Clear();
             fixedUpdatingItems.Clear();
@@ -178,6 +211,8 @@ namespace TSS.Base
 
         private void UpdateItem(TSSItem item, float deltaTime)
         {
+            if (!item.enabled) return;
+
             item.deltaTime = deltaTime;
 
             switch (item.state)
@@ -221,7 +256,7 @@ namespace TSS.Base
                     {
                         item.time = 0;
                         item.state = ItemState.closed;
-                        if (!item.loopActivated) TSSBehaviour.RemoveItem(item);
+                        if (!item.loopActivated) RemoveItem(item);
 
                     }
 
@@ -232,7 +267,7 @@ namespace TSS.Base
 
                     if (!item.loopActivated)
                     {
-                        TSSBehaviour.RemoveItem(item);
+                        RemoveItem(item);
                         if (!Application.isPlaying) break;
                     }
 
