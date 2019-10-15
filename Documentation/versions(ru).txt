@@ -1,3 +1,6 @@
+1.6.4
++ применение blockRaycasting и interactable при переходе в playmode
+
 1.6.3
 - Ќекоторые баги
 
